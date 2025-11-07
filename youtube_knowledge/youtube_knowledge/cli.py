@@ -2,7 +2,6 @@
 
 import os
 import sys
-from pathlib import Path
 
 import click
 from rich.console import Console
@@ -30,6 +29,82 @@ def get_api_key() -> str:
         )
         sys.exit(1)
     return api_key
+
+
+def _process_single_video(
+    video,
+    state: StateManager,
+    state_obj,
+    transcript_retriever: TranscriptRetriever,
+    transformer: TranscriptTransformer,
+    uploader: GeminiUploader,
+    file_search_store: str,
+) -> tuple[bool, str]:
+    """Process a single video and return (success, status).
+
+    Returns:
+        Tuple of (success: bool, status: str) where status is "processed", "failed", or "skipped"
+    """
+    # Get transcript
+    transcript = transcript_retriever.get_transcript(video.video_id)
+    if not transcript:
+        error = "Failed to retrieve transcript"
+        state_obj.add_failed(video.video_id, error)
+        state.save(state_obj)
+        return False, "failed"
+
+    # Format transcript
+    formatted_transcript = transcript_retriever.format_transcript(transcript)
+    console.print(f"  📝 Retrieved transcript ({len(transcript)} segments)")
+
+    # Transform transcript
+    transformed = transformer.transform(video, transcript, formatted_transcript)
+    if not transformed:
+        error = "Failed to transform transcript"
+        state_obj.add_failed(video.video_id, error)
+        state.save(state_obj)
+        return False, "failed"
+
+    console.print(f"  🤖 Transformed transcript ({len(transformed)} chars)")
+
+    # Upload to Gemini
+    display_name = f"youtube-{video.video_id}"
+    file_name = uploader.upload_document(
+        content=transformed,
+        display_name=display_name,
+        store_name=file_search_store,
+    )
+
+    if file_name:
+        # Record success
+        processed_video = ProcessedVideo.create(
+            video_id=video.video_id,
+            title=video.title,
+            gemini_file_name=display_name,
+            transcript_length=len(formatted_transcript),
+            transformed_length=len(transformed),
+        )
+        state_obj.add_processed(processed_video)
+        state.save(state_obj)
+        return True, "processed"
+
+    # Record failure
+    error = "Failed to upload to Gemini"
+    state_obj.add_failed(video.video_id, error)
+    state.save(state_obj)
+    return False, "failed"
+
+
+def _print_summary(processed_count: int, skipped_count: int, failed_count: int, playlist_id: str):
+    """Print processing summary."""
+    console.print("\n[bold green]Processing Complete![/]")
+    console.print(f"  ✅ Processed: {processed_count}")
+    console.print(f"  ⏭️  Skipped: {skipped_count}")
+    if failed_count > 0:
+        console.print(f"  ❌ Failed: {failed_count}")
+
+    console.print("\n[cyan]To chat with this knowledge base, run:[/]")
+    console.print(f"[bold]yt_knowledge chat --playlist-id {playlist_id}[/]")
 
 
 @click.group()
@@ -126,73 +201,29 @@ def process(playlist_id: str, store_name: str, skip_existing: bool, languages: s
 
                 console.print(f"\n[bold]Processing:[/] {video.title}")
 
-                # Get transcript
-                transcript = transcript_retriever.get_transcript(video.video_id)
-                if not transcript:
-                    error = "Failed to retrieve transcript"
-                    state.add_failed(video.video_id, error)
-                    state_manager.save(state)
-                    failed_count += 1
-                    progress.advance(task)
-                    continue
-
-                # Format transcript
-                formatted_transcript = transcript_retriever.format_transcript(transcript)
-                console.print(f"  📝 Retrieved transcript ({len(transcript)} segments)")
-
-                # Transform transcript
-                transformed = transformer.transform(video, transcript, formatted_transcript)
-                if not transformed:
-                    error = "Failed to transform transcript"
-                    state.add_failed(video.video_id, error)
-                    state_manager.save(state)
-                    failed_count += 1
-                    progress.advance(task)
-                    continue
-
-                console.print(f"  🤖 Transformed transcript ({len(transformed)} chars)")
-
-                # Upload to Gemini
-                display_name = f"youtube-{video.video_id}"
-                file_name = uploader.upload_document(
-                    content=transformed,
-                    display_name=display_name,
-                    store_name=file_search_store,
+                # Process the video
+                success, _status = _process_single_video(
+                    video,
+                    state_manager,
+                    state,
+                    transcript_retriever,
+                    transformer,
+                    uploader,
+                    file_search_store,
                 )
 
-                if file_name:
-                    # Record success
-                    processed_video = ProcessedVideo.create(
-                        video_id=video.video_id,
-                        title=video.title,
-                        gemini_file_name=display_name,
-                        transcript_length=len(formatted_transcript),
-                        transformed_length=len(transformed),
-                    )
-                    state.add_processed(processed_video)
-                    state_manager.save(state)
+                if success:
                     processed_count += 1
                 else:
-                    # Record failure
-                    error = "Failed to upload to Gemini"
-                    state.add_failed(video.video_id, error)
-                    state_manager.save(state)
                     failed_count += 1
 
                 progress.advance(task)
 
         # Summary
-        console.print("\n[bold green]Processing Complete![/]")
-        console.print(f"  ✅ Processed: {processed_count}")
-        console.print(f"  ⏭️  Skipped: {skipped_count}")
-        if failed_count > 0:
-            console.print(f"  ❌ Failed: {failed_count}")
-
-        console.print(f"\n[cyan]To chat with this knowledge base, run:[/]")
-        console.print(f"[bold]yt_knowledge chat --playlist-id {playlist_id}[/]")
+        _print_summary(processed_count, skipped_count, failed_count, playlist_id)
 
     except Exception as e:
-        console.print(f"\n[red]Error: {str(e)}[/]")
+        console.print(f"\n[red]Error: {e!s}[/]")
         sys.exit(1)
 
 

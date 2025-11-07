@@ -1,6 +1,6 @@
 """Playlist video fetching using yt-dlp."""
 
-from typing import Optional
+from typing import Any
 
 import yt_dlp
 
@@ -12,7 +12,7 @@ class PlaylistFetcher:
 
     def __init__(self):
         """Initialize the playlist fetcher."""
-        self.ydl_opts = {
+        self.ydl_opts: dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
             "extract_flat": True,  # Don't download, just get metadata
@@ -33,7 +33,7 @@ class PlaylistFetcher:
         playlist_url = self._get_playlist_url(playlist_id)
 
         try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:  # type: ignore[arg-type]
                 info = ydl.extract_info(playlist_url, download=False)
 
                 if not info:
@@ -54,9 +54,9 @@ class PlaylistFetcher:
                 return videos
 
         except Exception as e:
-            raise Exception(f"Failed to fetch playlist {playlist_id}: {str(e)}")
+            raise Exception(f"Failed to fetch playlist {playlist_id}: {e!s}") from e
 
-    def get_playlist_title(self, playlist_id: str) -> Optional[str]:
+    def get_playlist_title(self, playlist_id: str) -> str | None:
         """Get the title of a playlist.
 
         Args:
@@ -68,7 +68,7 @@ class PlaylistFetcher:
         playlist_url = self._get_playlist_url(playlist_id)
 
         try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:  # type: ignore[arg-type]
                 info = ydl.extract_info(playlist_url, download=False)
                 return info.get("title") if info else None
         except Exception:

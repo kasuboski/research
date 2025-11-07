@@ -1,12 +1,9 @@
 """Transcript retrieval from YouTube videos."""
 
-from typing import Optional
-
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api.formatters import TextFormatter
 from youtube_transcript_api._errors import (
-    TranscriptsDisabled,
     NoTranscriptFound,
+    TranscriptsDisabled,
     VideoUnavailable,
 )
 
@@ -16,7 +13,7 @@ from .models import TranscriptEntry
 class TranscriptRetriever:
     """Retrieves transcripts from YouTube videos."""
 
-    def __init__(self, languages: Optional[list[str]] = None):
+    def __init__(self, languages: list[str] | None = None):
         """Initialize transcript retriever.
 
         Args:
@@ -26,7 +23,7 @@ class TranscriptRetriever:
         self.languages = languages or ["en"]
         self.api = YouTubeTranscriptApi()
 
-    def get_transcript(self, video_id: str) -> Optional[list[TranscriptEntry]]:
+    def get_transcript(self, video_id: str) -> list[TranscriptEntry] | None:
         """Get transcript for a video.
 
         Args:
@@ -37,16 +34,17 @@ class TranscriptRetriever:
         """
         try:
             # Fetch transcript in preferred languages
-            transcript_data = self.api.get_transcript(video_id, languages=self.languages)
+            fetched = self.api.fetch(video_id, languages=self.languages)
 
             # Convert to our model
+            # FetchedTranscript is iterable and yields FetchedTranscriptSnippet dataclasses
             transcript = [
                 TranscriptEntry(
-                    text=entry["text"],
-                    start=entry["start"],
-                    duration=entry["duration"],
+                    text=entry.text,
+                    start=entry.start,
+                    duration=entry.duration,
                 )
-                for entry in transcript_data
+                for entry in fetched
             ]
 
             return transcript
@@ -61,7 +59,7 @@ class TranscriptRetriever:
             print(f"  ⚠️  Video {video_id} unavailable")
             return None
         except Exception as e:
-            print(f"  ❌ Error fetching transcript for {video_id}: {str(e)}")
+            print(f"  ❌ Error fetching transcript for {video_id}: {e!s}")
             return None
 
     def format_transcript(self, transcript: list[TranscriptEntry]) -> str:
@@ -106,5 +104,4 @@ class TranscriptRetriever:
 
         if hours > 0:
             return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-        else:
-            return f"{minutes:02d}:{secs:02d}"
+        return f"{minutes:02d}:{secs:02d}"

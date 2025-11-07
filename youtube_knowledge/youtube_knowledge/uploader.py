@@ -3,10 +3,8 @@
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional
 
 from google import genai
-from google.genai import types
 
 
 class GeminiUploader:
@@ -32,19 +30,20 @@ class GeminiUploader:
         try:
             # List existing stores
             for store in self.client.file_search_stores.list():
-                if store.config.display_name == store_name:
-                    print(f"  ℹ️  Using existing file search store: {store_name}")
+                # FileSearchStore has display_name attribute directly
+                if store.display_name == store_name:
+                    print(f"  [i] Using existing file search store: {store_name}")
+                    assert store.name, "Store name must not be None"
                     return store.name
 
             # Create new store if not found
             print(f"  ✨ Creating new file search store: {store_name}")
-            store = self.client.file_search_stores.create(
-                config={"display_name": store_name}
-            )
+            store = self.client.file_search_stores.create(config={"display_name": store_name})
+            assert store.name, "Created store must have a name"
             return store.name
 
         except Exception as e:
-            raise Exception(f"Failed to get or create file search store: {str(e)}")
+            raise Exception(f"Failed to get or create file search store: {e!s}") from e
 
     def upload_document(
         self,
@@ -52,7 +51,7 @@ class GeminiUploader:
         display_name: str,
         store_name: str,
         check_existing: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Upload a document to Gemini File Search.
 
         Args:
@@ -73,9 +72,7 @@ class GeminiUploader:
                     return existing
 
             # Write content to temporary file
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".md", delete=False
-            ) as tmp_file:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tmp_file:
                 tmp_file.write(content)
                 tmp_path = tmp_file.name
 
@@ -87,6 +84,7 @@ class GeminiUploader:
                     file_search_store_name=store_name,
                     config={
                         "display_name": display_name,
+                        "mime_type": "text/markdown",
                         "chunking_config": {
                             "white_space_config": {
                                 "max_tokens_per_chunk": 500,
@@ -97,23 +95,31 @@ class GeminiUploader:
                 )
 
                 # Wait for indexing to complete
-                print(f"  ⏳ Indexing...")
+                print("  ⏳ Indexing...")
                 while not operation.done:
                     time.sleep(2)
-                    operation = self.client.operations.get(operation.name)
+                    operation = self.client.operations.get(operation)
 
-                print(f"  ✅ Successfully uploaded and indexed: {display_name}")
-                return operation.name
+                # Extract document name from operation response
+                # The response is an UploadToFileSearchStoreResponse object
+                response = getattr(operation, "response", None)
+                if response and hasattr(response, "document_name"):
+                    document_name = response.document_name
+                    if document_name:
+                        print(f"  ✅ Successfully uploaded and indexed: {display_name}")
+                        return document_name
+
+                raise Exception("Operation completed but no document name in response")
 
             finally:
                 # Clean up temporary file
                 Path(tmp_path).unlink(missing_ok=True)
 
         except Exception as e:
-            print(f"  ❌ Upload failed for {display_name}: {str(e)}")
+            print(f"  ❌ Upload failed for {display_name}: {e!s}")
             return None
 
-    def _check_existing_file(self, display_name: str) -> Optional[str]:
+    def _check_existing_file(self, display_name: str) -> str | None:
         """Check if a file with the given display name already exists.
 
         Args:
@@ -155,7 +161,8 @@ class GeminiUploader:
         stores = []
         try:
             for store in self.client.file_search_stores.list():
-                stores.append((store.name, store.config.display_name))
+                # FileSearchStore has display_name attribute directly
+                stores.append((store.name, store.display_name))
         except Exception as e:
             print(f"Warning: Failed to list file search stores: {e}")
         return stores

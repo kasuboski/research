@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -41,7 +40,7 @@ class ProcessedVideo:
     gemini_file_name: str
     transcript_length: int
     transformed_length: int
-    error: Optional[str] = None
+    error: str | None = None
 
     @classmethod
     def create(
@@ -51,7 +50,7 @@ class ProcessedVideo:
         gemini_file_name: str,
         transcript_length: int = 0,
         transformed_length: int = 0,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> "ProcessedVideo":
         """Create a new ProcessedVideo record."""
         return cls(

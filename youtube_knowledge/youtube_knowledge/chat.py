@@ -1,7 +1,5 @@
 """Chat interface using Gemini with file search."""
 
-from typing import Optional
-
 from google import genai
 from google.genai import types
 from rich.console import Console
@@ -12,12 +10,12 @@ from rich.panel import Panel
 class KnowledgeBaseChat:
     """Interactive chat interface for querying the knowledge base."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
         """Initialize the chat interface.
 
         Args:
             api_key: Google Gemini API key
-            model: Gemini model to use
+            model: Gemini model to use (must be gemini-2.5-flash or gemini-2.5-pro for file_search)
         """
         self.client = genai.Client(api_key=api_key)
         self.model = model
@@ -28,7 +26,7 @@ class KnowledgeBaseChat:
         question: str,
         file_search_store_name: str,
         show_sources: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Query the knowledge base.
 
         Args:
@@ -69,19 +67,19 @@ class KnowledgeBaseChat:
             return response.text
 
         except Exception as e:
-            self.console.print(f"\n❌ Error querying knowledge base: {str(e)}", style="red")
+            self.console.print(f"\n❌ Error querying knowledge base: {e!s}", style="red")
             return None
 
-    def interactive_chat(
-        self, file_search_store_name: str, playlist_title: Optional[str] = None
-    ):
+    def interactive_chat(self, file_search_store_name: str, playlist_title: str | None = None):
         """Start an interactive chat session.
 
         Args:
             file_search_store_name: File search store resource name
             playlist_title: Optional playlist title for display
         """
-        title = f"Knowledge Base Chat: {playlist_title}" if playlist_title else "Knowledge Base Chat"
+        title = (
+            f"Knowledge Base Chat: {playlist_title}" if playlist_title else "Knowledge Base Chat"
+        )
 
         self.console.print(
             Panel(

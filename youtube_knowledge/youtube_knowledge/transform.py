@@ -1,10 +1,8 @@
 """Transcript transformation using Gemini for knowledge optimization."""
 
-from typing import Optional
-
 from google import genai
 
-from .models import VideoInfo, TranscriptEntry
+from .models import TranscriptEntry, VideoInfo
 
 
 TRANSFORMATION_PROMPT = """You are a knowledge curator tasked with transforming a YouTube video transcript into a well-structured document optimized for knowledge retention and semantic search.
@@ -88,7 +86,7 @@ class TranscriptTransformer:
         video: VideoInfo,
         transcript: list[TranscriptEntry],
         formatted_transcript: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Transform a transcript into optimized knowledge document.
 
         Args:
@@ -124,7 +122,7 @@ class TranscriptTransformer:
             return transformed
 
         except Exception as e:
-            print(f"  ❌ Error transforming transcript for {video.video_id}: {str(e)}")
+            print(f"  ❌ Error transforming transcript for {video.video_id}: {e!s}")
             return None
 
     def _add_metadata_header(self, video: VideoInfo, content: str) -> str:
