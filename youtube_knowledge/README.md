@@ -49,19 +49,19 @@ Transform all videos in a playlist into a knowledge base:
 
 ```bash
 # Using playlist ID
-yt_knowledge process --playlist-id PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf
+uv run yt_knowledge process --playlist-id PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf
 
 # Using full playlist URL
-yt_knowledge process --playlist-id "https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
+uv run yt_knowledge process --playlist-id "https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
 
 # With custom store name
-yt_knowledge process --playlist-id PLxxx --store-name "my-custom-kb"
+uv run yt_knowledge process --playlist-id PLxxx --store-name "my-custom-kb"
 
 # Process with different language preferences
-yt_knowledge process --playlist-id PLxxx --languages en,es,fr
+uv run yt_knowledge process --playlist-id PLxxx --languages en,es,fr
 
 # Force reprocess all videos
-yt_knowledge process --playlist-id PLxxx --reprocess
+uv run yt_knowledge process --playlist-id PLxxx --reprocess
 ```
 
 ### Chat with Knowledge Base
@@ -70,13 +70,13 @@ Ask questions about the processed videos:
 
 ```bash
 # Interactive chat mode
-yt_knowledge chat --playlist-id PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf
+uv run yt_knowledge chat --playlist-id PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf
 
 # Single query mode
-yt_knowledge chat --playlist-id PLxxx --query "What are the main topics covered?"
+uv run yt_knowledge chat --playlist-id PLxxx --query "What are the main topics covered?"
 
 # List available knowledge bases
-yt_knowledge chat
+uv run yt_knowledge chat
 ```
 
 ### List Processed Playlists
@@ -84,7 +84,7 @@ yt_knowledge chat
 View all processed playlists and their status:
 
 ```bash
-yt_knowledge list
+uv run yt_knowledge list
 ```
 
 ## How It Works
@@ -275,7 +275,7 @@ If state becomes corrupted, delete the state file and reprocess:
 
 ```bash
 rm .state/playlists/{playlist_id}.json
-yt_knowledge process --playlist-id {playlist_id}
+uv run yt_knowledge process --playlist-id {playlist_id}
 ```
 
 ## Development
@@ -283,7 +283,6 @@ yt_knowledge process --playlist-id {playlist_id}
 ### Running Tests
 
 ```bash
-cd youtube_knowledge
 uv run pytest
 ```
 

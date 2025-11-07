@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional
 
 from .models import PlaylistState, ProcessedVideo
 
@@ -23,7 +22,7 @@ class StateManager:
         """Get path to state file for a playlist."""
         return self.state_dir / f"{playlist_id}.json"
 
-    def load(self, playlist_id: str) -> Optional[PlaylistState]:
+    def load(self, playlist_id: str) -> PlaylistState | None:
         """Load state for a playlist.
 
         Args:
@@ -37,7 +36,7 @@ class StateManager:
             return None
 
         try:
-            with open(state_path, "r") as f:
+            with state_path.open() as f:
                 data = json.load(f)
 
             # Convert processed_videos dict to ProcessedVideo objects
@@ -89,7 +88,7 @@ class StateManager:
             "failed_videos": state.failed_videos,
         }
 
-        with open(state_path, "w") as f:
+        with state_path.open("w") as f:
             json.dump(data, f, indent=2)
 
     def list_playlists(self) -> list[PlaylistState]:
@@ -106,9 +105,7 @@ class StateManager:
                 playlists.append(state)
         return playlists
 
-    def get_or_create(
-        self, playlist_id: str, file_search_store_name: str
-    ) -> PlaylistState:
+    def get_or_create(self, playlist_id: str, file_search_store_name: str) -> PlaylistState:
         """Get existing state or create new one.
 
         Args:
