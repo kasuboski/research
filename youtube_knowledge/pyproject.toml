@@ -1,0 +1,19 @@
+[project]
+name = "youtube-knowledge"
+version = "0.1.0"
+description = "Transform YouTube playlists into Gemini knowledge bases for semantic search and Q&A"
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai>=1.0.0",
+    "youtube-transcript-api>=0.6.0",
+    "yt-dlp>=2024.0.0",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+yt_knowledge = "youtube_knowledge.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
