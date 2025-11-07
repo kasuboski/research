@@ -10,12 +10,12 @@ from rich.panel import Panel
 class KnowledgeBaseChat:
     """Interactive chat interface for querying the knowledge base."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
         """Initialize the chat interface.
 
         Args:
             api_key: Google Gemini API key
-            model: Gemini model to use
+            model: Gemini model to use (must be gemini-2.5-flash or gemini-2.5-pro for file_search)
         """
         self.client = genai.Client(api_key=api_key)
         self.model = model
