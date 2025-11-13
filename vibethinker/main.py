@@ -2,7 +2,8 @@
 # dependencies = [
 #   "mlx-lm",
 # ]
-# ///
+# //
+# https://huggingface.co/WeiboAI/VibeThinker-1.5B
 
 from mlx_lm import generate, load
 
