@@ -88,32 +88,19 @@ func (r *Runner) Run(values map[string]interface{}) *Result {
 	return result
 }
 
-// BuildDependencies builds chart dependencies if needed
+// BuildDependencies is deprecated - Helm v3 automatically handles dependencies
+// during chart loading. This function is kept for backward compatibility but
+// is essentially a no-op. Dependencies are built automatically by loader.Load().
 func (r *Runner) BuildDependencies() error {
+	// Verify chart exists
 	chartFile := filepath.Join(r.chartPath, "Chart.yaml")
 	if _, err := os.Stat(chartFile); os.IsNotExist(err) {
 		return fmt.Errorf("Chart.yaml not found at %s", chartFile)
 	}
 
-	// Check if dependencies exist
-	requirementsFile := filepath.Join(r.chartPath, "Chart.yaml")
-	if _, err := os.Stat(requirementsFile); os.IsNotExist(err) {
-		// No dependencies to build
-		return nil
-	}
-
-	// Create action configuration
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(r.settings.RESTClientGetter(), r.settings.Namespace(), os.Getenv("HELM_DRIVER"), func(format string, v ...interface{}) {}); err != nil {
-		return fmt.Errorf("failed to initialize action config: %w", err)
-	}
-
-	// Build dependencies
-	dep := action.NewDependency()
-	// Note: In Helm v3, dependency management is handled differently
-	// We'll let the chart load handle dependencies
-	_ = dep
-
+	// In Helm v3, dependencies are automatically built during chart loading
+	// via loader.Load(), which we call in Run() and Validate()
+	// No explicit dependency building is needed
 	return nil
 }
 

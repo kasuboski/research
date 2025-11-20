@@ -95,6 +95,18 @@ maxDepth: 5
 
 # Number of iterations (default: 1000)
 iterations: 2000
+
+# Error patterns to ignore (treated as non-crashes)
+ignoreErrors:
+  - "connection refused"
+  - "context deadline exceeded"
+
+# Patterns for crashes that are not interesting
+# These override the defaults, so include all patterns you want
+uninterestingPatterns:
+  - "validation failed"
+  - "required value"
+  - "missing required field"
 ```
 
 ## How It Works

@@ -17,6 +17,10 @@ type Config struct {
 	MaxDepth int `yaml:"maxDepth"`
 	// Iterations number of fuzz iterations (default: 1000)
 	Iterations int `yaml:"iterations"`
+	// IgnoreErrors lists error message patterns to ignore during crash detection
+	IgnoreErrors []string `yaml:"ignoreErrors,omitempty"`
+	// UninterestingPatterns lists error patterns considered uninteresting
+	UninterestingPatterns []string `yaml:"uninterestingPatterns,omitempty"`
 }
 
 // Constraint defines constraints for a specific value path

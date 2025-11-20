@@ -105,7 +105,7 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 	}
 
 	// Initialize oracle and minimizer
-	oracle := runner.NewOracle()
+	oracle := runner.NewOracleWithConfig(cfg.IgnoreErrors, cfg.UninterestingPatterns)
 	minimizer := runner.NewMinimizer(outputDir)
 
 	// Initialize generator
@@ -176,11 +176,34 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 }
 
 // isRapidError checks if an error is from rapid (expected during fuzzing)
+// Rapid errors occur when a test fails via t.Fatalf() and are part of normal
+// fuzzing operation. Non-rapid errors indicate actual problems with the fuzzer.
 func isRapidError(err error) bool {
 	if err == nil {
 		return false
 	}
-	// Rapid errors typically contain "failed after" or similar
+
 	errStr := err.Error()
-	return strings.Contains(errStr, "failed") || strings.Contains(errStr, "crash detected")
+
+	// Known rapid error patterns that indicate test failures (expected)
+	rapidPatterns := []string{
+		"crash detected",     // Our test failure message
+		"failed after",       // Rapid's failure message format
+		"panic: rapid:",      // Rapid internal panic
+		"rapid.Check:",       // Rapid stack trace
+		"rapid: failed",      // Rapid explicit failure
+		"rapid: flaky",       // Rapid flaky test detection
+		"rapid_test.go:",     // Rapid test file in stack
+		"pgregory.net/rapid", // Rapid import path in stack
+	}
+
+	for _, pattern := range rapidPatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+
+	// Check for rapid-specific error types by examining the error chain
+	// If we can't determine it's a rapid error, treat it as a real error
+	return false
 }

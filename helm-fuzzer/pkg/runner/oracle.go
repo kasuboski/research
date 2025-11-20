@@ -6,14 +6,43 @@ import (
 
 // Oracle determines if a test result represents a failure/crash
 type Oracle struct {
-	// IgnoreErrors lists error message patterns to ignore
+	// IgnoreErrors lists error message patterns to ignore (treated as non-crashes)
 	IgnoreErrors []string
+	// UninterestingPatterns lists patterns for crashes that are not interesting
+	UninterestingPatterns []string
 }
 
 // NewOracle creates a new oracle with default settings
 func NewOracle() *Oracle {
 	return &Oracle{
-		IgnoreErrors: []string{},
+		IgnoreErrors:          []string{},
+		UninterestingPatterns: getDefaultUninterestingPatterns(),
+	}
+}
+
+// NewOracleWithConfig creates a new oracle with configuration
+func NewOracleWithConfig(ignoreErrors, uninterestingPatterns []string) *Oracle {
+	oracle := NewOracle()
+
+	// Merge user-provided patterns with defaults
+	if len(ignoreErrors) > 0 {
+		oracle.IgnoreErrors = append(oracle.IgnoreErrors, ignoreErrors...)
+	}
+
+	if len(uninterestingPatterns) > 0 {
+		// Replace defaults with user-provided patterns
+		oracle.UninterestingPatterns = uninterestingPatterns
+	}
+
+	return oracle
+}
+
+// getDefaultUninterestingPatterns returns default patterns for uninteresting errors
+func getDefaultUninterestingPatterns() []string {
+	return []string{
+		"validation failed",
+		"required value",
+		"missing required field",
 	}
 }
 
@@ -77,17 +106,12 @@ func (o *Oracle) IsInteresting(result *Result) bool {
 		return false
 	}
 
-	// Check for common uninteresting errors
+	// Check for uninteresting errors
 	if result.Error != nil {
 		errMsg := result.Error.Error()
 
-		// Ignore validation errors that are expected
-		uninterestingPatterns := []string{
-			"validation failed",
-			"required value",
-		}
-
-		for _, pattern := range uninterestingPatterns {
+		// Check against configured uninteresting patterns
+		for _, pattern := range o.UninterestingPatterns {
 			if strings.Contains(errMsg, pattern) {
 				return false
 			}
