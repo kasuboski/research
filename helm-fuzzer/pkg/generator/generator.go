@@ -109,7 +109,8 @@ func (g *Generator) generateString(t *rapid.T, s *schema.Schema) string {
 	}
 
 	length := rapid.IntRange(minLen, maxLen).Draw(t, "string_length")
-	return rapid.StringN(length, length, -1).Draw(t, "string")
+	// Use maxLen for both rune count and byte length to ensure we don't exceed byte limit
+	return rapid.StringN(length, length, maxLen).Draw(t, "string")
 }
 
 // generateInteger generates a random integer

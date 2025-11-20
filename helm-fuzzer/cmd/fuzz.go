@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"pgregory.net/rapid"
 
 	"github.com/kasuboski/helm-fuzzer/pkg/config"
 	"github.com/kasuboski/helm-fuzzer/pkg/generator"
@@ -117,25 +115,26 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 
 	ui.LogDebug("Starting fuzzing loop...")
 
-	// Use rapid.Check for property-based testing
-	err = rapid.Check(func(t *rapid.T) {
+	// Run fuzzing iterations
+	for i := 0; i < cfg.Iterations; i++ {
 		// Check timeout
 		select {
 		case <-timeoutChan:
-			t.Skip("timeout reached")
+			ui.LogDebug("Timeout reached")
+			goto finish
 		default:
 		}
 
-		// Generate values
-		values := gen.Generate().Draw(t, "values")
+		// Generate values using rapid's generator
+		// Use different seeds for each iteration to get variety
+		values := gen.Generate().Example(i)
 
 		// Run test
 		result := testRunner.Run(values)
 
 		// Update UI
-		iteration := t.NumRuns()
 		isCrash := oracle.IsCrash(result)
-		ui.Update(iteration, isCrash)
+		ui.Update(i+1, isCrash)
 
 		// Check for crash
 		if isCrash && oracle.IsInteresting(result) {
@@ -148,12 +147,13 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 				ui.LogWarning("Failed to save reproduction file: %v", err)
 			}
 
-			ui.ReportCrash(iteration, reason, reproFile)
+			ui.ReportCrash(i+1, reason, reproFile)
 
-			// Fail the test to trigger rapid's shrinking
-			t.Fatalf("crash detected: %s", reason)
+			// Continue fuzzing to find more crashes
 		}
-	})
+	}
+
+finish:
 
 	ui.Finish()
 
@@ -165,45 +165,5 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	if err != nil {
-		// If error is not a rapid error, it's a real error
-		if !isRapidError(err) {
-			return fmt.Errorf("fuzzing failed: %w", err)
-		}
-	}
-
 	return nil
-}
-
-// isRapidError checks if an error is from rapid (expected during fuzzing)
-// Rapid errors occur when a test fails via t.Fatalf() and are part of normal
-// fuzzing operation. Non-rapid errors indicate actual problems with the fuzzer.
-func isRapidError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	errStr := err.Error()
-
-	// Known rapid error patterns that indicate test failures (expected)
-	rapidPatterns := []string{
-		"crash detected",     // Our test failure message
-		"failed after",       // Rapid's failure message format
-		"panic: rapid:",      // Rapid internal panic
-		"rapid.Check:",       // Rapid stack trace
-		"rapid: failed",      // Rapid explicit failure
-		"rapid: flaky",       // Rapid flaky test detection
-		"rapid_test.go:",     // Rapid test file in stack
-		"pgregory.net/rapid", // Rapid import path in stack
-	}
-
-	for _, pattern := range rapidPatterns {
-		if strings.Contains(errStr, pattern) {
-			return true
-		}
-	}
-
-	// Check for rapid-specific error types by examining the error chain
-	// If we can't determine it's a rapid error, treat it as a real error
-	return false
 }

@@ -252,36 +252,17 @@ func TestGenerateRequiredFields(t *testing.T) {
 
 	gen := New(sch, 5)
 
-	// Run multiple times to ensure required field is always present
-	foundWithoutRequired := false
-	foundWithRequired := true
+	rapid.Check(t, func(t *rapid.T) {
+		value := gen.generateValue(t, sch, 0)
 
-	for i := 0; i < 10; i++ {
-		err := rapid.Check(t, func(t *rapid.T) {
-			value := gen.generateValue(t, sch, 0)
-
-			obj, ok := value.(map[string]interface{})
-			if !ok {
-				t.Fatalf("expected map[string]interface{}, got %T", value)
-			}
-
-			// Required field should always be present
-			if _, exists := obj["required"]; !exists {
-				foundWithRequired = false
-			}
-
-			// Optional field might not be present
-			if _, exists := obj["notRequired"]; !exists {
-				foundWithoutRequired = true
-			}
-		})
-
-		if err == nil {
-			break
+		obj, ok := value.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected map[string]interface{}, got %T", value)
 		}
-	}
 
-	if !foundWithRequired {
-		t.Error("required field was not always present")
-	}
+		// Required field should always be present
+		if _, exists := obj["required"]; !exists {
+			t.Fatalf("required field was not present")
+		}
+	})
 }

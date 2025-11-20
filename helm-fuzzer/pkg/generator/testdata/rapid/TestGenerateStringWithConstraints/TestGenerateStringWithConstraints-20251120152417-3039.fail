@@ -1,0 +1,29 @@
+# 2025/11/20 15:24:17.298834 [TestGenerateStringWithConstraints] [rapid] draw string_length: 5
+# 2025/11/20 15:24:17.298862 [TestGenerateStringWithConstraints] [rapid] draw string: "A\ufeffÀǅ᪾"
+# 2025/11/20 15:24:17.298864 [TestGenerateStringWithConstraints] string length 11 is greater than max 10
+# 
+v0.4.8#1304735126927265632
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0xe3e05a098777c
+0x26
+0x0
+0x14
+0xb908c4741e25e
+0x1a
+0x0
+0x16
+0x0
+0x0
+0x0
+0x22
+0x38e38e38e38e4
+0x2
+0x0

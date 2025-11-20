@@ -2,10 +2,12 @@ package schema
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/invopop/jsonschema"
+	"github.com/kasuboski/helm-fuzzer/pkg/config"
 )
 
 // LoadJSONSchema loads and parses values.schema.json
@@ -68,13 +70,15 @@ func (e *Engine) convertJSONSchema(js *jsonschema.Schema, path string) *Schema {
 	}
 
 	// Handle number constraints
-	if js.Minimum != nil {
-		min := *js.Minimum
-		schema.Minimum = &min
+	if js.Minimum != "" {
+		if minVal, err := js.Minimum.Float64(); err == nil {
+			schema.Minimum = &minVal
+		}
 	}
-	if js.Maximum != nil {
-		max := *js.Maximum
-		schema.Maximum = &max
+	if js.Maximum != "" {
+		if maxVal, err := js.Maximum.Float64(); err == nil {
+			schema.Maximum = &maxVal
+		}
 	}
 
 	// Handle default
@@ -85,7 +89,10 @@ func (e *Engine) convertJSONSchema(js *jsonschema.Schema, path string) *Schema {
 	// Handle object properties
 	if schema.Type == TypeObject && js.Properties != nil {
 		schema.Properties = make(map[string]*Schema)
-		for propName, propSchema := range js.Properties.Map() {
+		for pair := js.Properties.Oldest(); pair != nil; pair = pair.Next() {
+			propName := pair.Key
+			propSchema := pair.Value
+
 			propPath := path
 			if propPath != "" {
 				propPath += "."
@@ -143,12 +150,12 @@ func (e *Engine) applyConstraint(js *jsonschema.Schema, constraint *config.Const
 
 	if constraint.Min != nil {
 		min := float64(*constraint.Min)
-		result.Minimum = &min
+		result.Minimum = json.Number(fmt.Sprintf("%f", min))
 	}
 
 	if constraint.Max != nil {
 		max := float64(*constraint.Max)
-		result.Maximum = &max
+		result.Maximum = json.Number(fmt.Sprintf("%f", max))
 	}
 
 	if constraint.Pattern != "" {

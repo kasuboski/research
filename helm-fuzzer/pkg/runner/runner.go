@@ -3,7 +3,6 @@ package runner
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"

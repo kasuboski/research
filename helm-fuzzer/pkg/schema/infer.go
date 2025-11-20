@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/kasuboski/helm-fuzzer/pkg/config"
 	"gopkg.in/yaml.v3"
 )
 
