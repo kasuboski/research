@@ -161,6 +161,15 @@ helm install --dry-run my-release <chart> -f fuzzer-repro-<hash>.yaml
 
 The tool exits with code `1` if crashes are found, making it perfect for CI/CD pipelines.
 
+## Testing
+
+See [TESTING.md](TESTING.md) for a comprehensive guide on testing helm-fuzz against popular open source charts including:
+- Bitnami Redis
+- Bitnami PostgreSQL
+- Ingress-NGINX
+
+The guide includes expected findings, analysis techniques, and CI/CD integration examples.
+
 ## Architecture
 
 ```mermaid
