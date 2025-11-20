@@ -1,0 +1,24 @@
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.19"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# This field might be nil and cause issues
+optional:
+  enabled: true
+  config:
+    key: value

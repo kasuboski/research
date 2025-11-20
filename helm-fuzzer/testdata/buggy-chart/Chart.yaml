@@ -1,0 +1,6 @@
+apiVersion: v2
+name: buggy-chart
+description: A test chart with intentional bugs for fuzzing
+type: application
+version: 0.1.0
+appVersion: "1.0"
