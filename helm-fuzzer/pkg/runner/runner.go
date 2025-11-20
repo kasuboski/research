@@ -88,22 +88,6 @@ func (r *Runner) Run(values map[string]interface{}) *Result {
 	return result
 }
 
-// BuildDependencies is deprecated - Helm v3 automatically handles dependencies
-// during chart loading. This function is kept for backward compatibility but
-// is essentially a no-op. Dependencies are built automatically by loader.Load().
-func (r *Runner) BuildDependencies() error {
-	// Verify chart exists
-	chartFile := filepath.Join(r.chartPath, "Chart.yaml")
-	if _, err := os.Stat(chartFile); os.IsNotExist(err) {
-		return fmt.Errorf("Chart.yaml not found at %s", chartFile)
-	}
-
-	// In Helm v3, dependencies are automatically built during chart loading
-	// via loader.Load(), which we call in Run() and Validate()
-	// No explicit dependency building is needed
-	return nil
-}
-
 // Validate performs a basic validation of the chart
 func (r *Runner) Validate() error {
 	// Try to load the chart
