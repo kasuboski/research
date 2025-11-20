@@ -1,0 +1,33 @@
+# Binaries
+helm-fuzz
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+fuzzer-repro-*.yaml
+*.test
+*.out
+
+# Build directories
+dist/
+bin/
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+vendor/
