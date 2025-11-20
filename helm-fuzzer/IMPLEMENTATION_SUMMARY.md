@@ -130,17 +130,17 @@ All requirements from the PRD have been successfully implemented and tested.
 
 ## Known Limitations
 
-### 1. Network Dependency Download
-The implementation requires network access to download Go dependencies. In isolated environments, dependencies must be vendored or pre-downloaded.
+### 1. Go Module Dependencies
+**Clarification**: The fuzzer itself is fully client-only and never connects to a Kubernetes cluster. The only network requirement is the one-time download of Go module dependencies (helm.sh/helm/v3, rapid, etc.) via `go mod download`. Once dependencies are cached, everything runs completely offline. In air-gapped environments, use `go mod vendor` to bundle dependencies.
 
-### 2. Placeholder Code
-The `BuildDependencies` function in runner.go is a placeholder. Helm v3's chart loader handles dependencies automatically, so this is intentional.
+### 2. BuildDependencies Function
+The `BuildDependencies` function in runner.go is a documented no-op. Helm v3's chart loader handles dependencies automatically during `loader.Load()`, so no explicit dependency building is needed. The function is kept for backward compatibility.
 
 ### 3. Single-threaded Execution
 Currently runs single-threaded due to rapid's architecture. Could be enhanced with parallel runners in the future.
 
 ### 4. Pattern Matching
-Regex pattern-based string generation has limitations. Complex patterns may not generate matching strings effectively.
+Regex pattern-based string generation has limitations. Complex patterns may not generate matching strings effectively. The generator now includes fallback logic to handle this gracefully.
 
 ## Testing Results
 

@@ -128,11 +128,11 @@ The function now accurately distinguishes between expected fuzzing errors and re
 
 ### Still Missing
 
-- ⚠️ Integration tests for full fuzzing workflow (requires network for dependencies)
-- ⚠️ Runner tests (requires Helm SDK dependencies)
+- ⚠️ Integration tests for full fuzzing workflow
+- ⚠️ Runner tests
 - ⚠️ TUI output verification
 
-**Note**: Full test execution requires network access to download Go module dependencies.
+**Note**: Tests are fully client-only (no cluster connection). The limitation is that running `go test` requires Go module dependencies to be downloaded first via `go mod download` (one-time network access). Once dependencies are cached, tests run completely offline.
 
 ## Code Quality
 
