@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"pgregory.net/rapid"
 
@@ -70,7 +71,7 @@ func (g *Generator) generateValue(t *rapid.T, s *schema.Schema, depth int) inter
 	}
 }
 
-// generateString generates a random string
+// generateString generates a random string without YAML control characters
 func (g *Generator) generateString(t *rapid.T, s *schema.Schema) string {
 	// Handle pattern constraint
 	if s.Pattern != "" {
@@ -86,7 +87,7 @@ func (g *Generator) generateString(t *rapid.T, s *schema.Schema) string {
 		// Attempt pattern-based generation
 		// This works for simple patterns but may not support all regex features
 		if str := rapid.StringMatching(s.Pattern).Draw(t, "string_pattern"); str != "" {
-			return str
+			return sanitizeYAMLString(str)
 		}
 
 		// Fallback: generate regular string if pattern matching doesn't work
@@ -110,7 +111,10 @@ func (g *Generator) generateString(t *rapid.T, s *schema.Schema) string {
 
 	length := rapid.IntRange(minLen, maxLen).Draw(t, "string_length")
 	// Use maxLen for both rune count and byte length to ensure we don't exceed byte limit
-	return rapid.StringN(length, length, maxLen).Draw(t, "string")
+	str := rapid.StringN(length, length, maxLen).Draw(t, "string")
+
+	// Sanitize the string to remove YAML control characters
+	return sanitizeYAMLString(str)
 }
 
 // generateInteger generates a random integer
@@ -207,7 +211,7 @@ func (g *Generator) generateAny(t *rapid.T, depth int) interface{} {
 
 	switch typeChoice {
 	case 0:
-		return rapid.String().Draw(t, "any_string")
+		return sanitizeYAMLString(rapid.String().Draw(t, "any_string"))
 	case 1:
 		return rapid.Int().Draw(t, "any_int")
 	case 2:
@@ -217,7 +221,7 @@ func (g *Generator) generateAny(t *rapid.T, depth int) interface{} {
 	case 4:
 		return nil
 	default:
-		return rapid.String().Draw(t, "any_default")
+		return sanitizeYAMLString(rapid.String().Draw(t, "any_default"))
 	}
 }
 
@@ -249,4 +253,33 @@ func (g *Generator) generateDefault(s *schema.Schema) interface{} {
 func ValidatePattern(pattern string) error {
 	_, err := regexp.Compile(pattern)
 	return err
+}
+
+// sanitizeYAMLString removes YAML control characters and other invalid characters
+// Control characters (U+0000-U+001F, U+007F-U+009F except \t) are not allowed in YAML
+func sanitizeYAMLString(s string) string {
+	var builder strings.Builder
+	builder.Grow(len(s))
+
+	for _, r := range s {
+		// Allow tab (0x09) but filter other C0 control characters (0x00-0x1F except tab)
+		// Filter DEL (0x7F) and C1 control characters (0x80-0x9F)
+		// Keep newline and carriage return but they'll be quoted by YAML encoder
+		if (r >= 0x00 && r <= 0x08) || // Control chars before tab
+			(r >= 0x0B && r <= 0x1F) || // Control chars after newline (including \r)
+			(r == 0x7F) || // DEL
+			(r >= 0x80 && r <= 0x9F) { // C1 control chars
+			// Skip this character
+			continue
+		}
+
+		// Keep all other characters including:
+		// - Tab (0x09)
+		// - Newline (0x0A) - will be handled by YAML encoder
+		// - Printable ASCII (0x20-0x7E)
+		// - Unicode characters (>= 0xA0)
+		builder.WriteRune(r)
+	}
+
+	return builder.String()
 }

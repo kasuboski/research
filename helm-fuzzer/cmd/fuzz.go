@@ -89,22 +89,10 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 	}
 	ui.LogDebug("Schema detected: %s", sch.Type)
 
-	// Initialize runner
-	ui.LogDebug("Initializing test runner...")
-	testRunner, err := runner.New(chartPath)
-	if err != nil {
-		return fmt.Errorf("failed to create runner: %w", err)
-	}
-
-	// Validate chart
-	ui.LogDebug("Validating chart...")
-	if err := testRunner.Validate(); err != nil {
-		return fmt.Errorf("chart validation failed: %w", err)
-	}
-
-	// Initialize oracle and minimizer
+	// Initialize oracle and minimizer with deduplication
 	oracle := runner.NewOracleWithConfig(cfg.IgnoreErrors, cfg.UninterestingPatterns)
 	minimizer := runner.NewMinimizer(outputDir)
+	deduplicator := runner.NewDeduplicator()
 
 	// Initialize generator
 	gen := generator.New(sch, cfg.MaxDepth)
@@ -125,6 +113,23 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 		default:
 		}
 
+		// Rotate through Kubernetes versions to test multiple versions
+		kubeVersion := cfg.KubeVersions[i%len(cfg.KubeVersions)]
+
+		// Initialize runner with the current Kubernetes version
+		testRunner, err := runner.NewWithKubeVersion(chartPath, kubeVersion)
+		if err != nil {
+			return fmt.Errorf("failed to create runner: %w", err)
+		}
+
+		// Validate chart on first iteration
+		if i == 0 {
+			ui.LogDebug("Validating chart...")
+			if err := testRunner.Validate(); err != nil {
+				return fmt.Errorf("chart validation failed: %w", err)
+			}
+		}
+
 		// Generate values using rapid's generator
 		// Use different seeds for each iteration to get variety
 		values := gen.Generate().Example(i)
@@ -138,10 +143,18 @@ func runFuzz(cmd *cobra.Command, args []string) error {
 
 		// Check for crash
 		if isCrash && oracle.IsInteresting(result) {
-			crashFound = true
 			reason := oracle.GetCrashReason(result)
 
-			// Save reproduction file
+			// Check if this is a duplicate crash
+			if deduplicator.IsDuplicate(reason) {
+				// Skip saving duplicate crashes
+				continue
+			}
+
+			crashFound = true
+
+			// Mark as seen and save reproduction file
+			deduplicator.MarkSeen(reason)
 			reproFile, err := minimizer.SaveReproduction(result, reason)
 			if err != nil {
 				ui.LogWarning("Failed to save reproduction file: %v", err)

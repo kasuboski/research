@@ -6,6 +6,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 )
 
@@ -19,20 +20,27 @@ type Result struct {
 
 // Runner executes Helm template rendering with fuzzing
 type Runner struct {
-	chartPath string
-	settings  *cli.EnvSettings
+	chartPath   string
+	settings    *cli.EnvSettings
+	kubeVersion string
 }
 
 // New creates a new runner for the given chart path
 func New(chartPath string) (*Runner, error) {
+	return NewWithKubeVersion(chartPath, "1.28.0")
+}
+
+// NewWithKubeVersion creates a new runner with a specific Kubernetes version
+func NewWithKubeVersion(chartPath string, kubeVersion string) (*Runner, error) {
 	// Verify chart path exists
 	if _, err := os.Stat(chartPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("chart path does not exist: %s", chartPath)
 	}
 
 	return &Runner{
-		chartPath: chartPath,
-		settings:  cli.New(),
+		chartPath:   chartPath,
+		settings:    cli.New(),
+		kubeVersion: kubeVersion,
 	}, nil
 }
 
@@ -74,6 +82,7 @@ func (r *Runner) Run(values map[string]interface{}) *Result {
 	client.ReleaseName = "fuzz-test"
 	client.Replace = true
 	client.Namespace = "default"
+	client.KubeVersion = &chartutil.KubeVersion{Version: r.kubeVersion}
 
 	// Run the installation (dry-run)
 	_, err = client.Run(chart, values)

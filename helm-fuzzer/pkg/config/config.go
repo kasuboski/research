@@ -21,6 +21,8 @@ type Config struct {
 	IgnoreErrors []string `yaml:"ignoreErrors,omitempty"`
 	// UninterestingPatterns lists error patterns considered uninteresting
 	UninterestingPatterns []string `yaml:"uninterestingPatterns,omitempty"`
+	// KubeVersions lists Kubernetes versions to test against (default: ["1.28.0", "1.29.0", "1.30.0", "1.31.0"])
+	KubeVersions []string `yaml:"kubeVersions,omitempty"`
 }
 
 // Constraint defines constraints for a specific value path
@@ -44,10 +46,11 @@ type Constraint struct {
 // DefaultConfig returns a config with sensible defaults
 func DefaultConfig() *Config {
 	return &Config{
-		Ignore:      []string{},
-		Constraints: []Constraint{},
-		MaxDepth:    5,
-		Iterations:  1000,
+		Ignore:       []string{},
+		Constraints:  []Constraint{},
+		MaxDepth:     5,
+		Iterations:   1000,
+		KubeVersions: []string{"1.28.0", "1.29.0", "1.30.0", "1.31.0"},
 	}
 }
 
@@ -77,6 +80,9 @@ func LoadConfig(chartPath string) (*Config, error) {
 	}
 	if config.Iterations == 0 {
 		config.Iterations = 1000
+	}
+	if len(config.KubeVersions) == 0 {
+		config.KubeVersions = []string{"1.28.0", "1.29.0", "1.30.0", "1.31.0"}
 	}
 
 	return config, nil
