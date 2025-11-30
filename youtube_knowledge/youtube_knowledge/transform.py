@@ -71,12 +71,12 @@ Transform this transcript into a well-structured knowledge document following th
 class TranscriptTransformer:
     """Transforms transcripts using Gemini for knowledge optimization."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash-lite"):
         """Initialize the transcript transformer.
 
         Args:
             api_key: Google Gemini API key
-            model: Gemini model to use (default: gemini-2.0-flash-exp)
+            model: Gemini model to use (default: gemini-2.5-flash-lite)
         """
         self.client = genai.Client(api_key=api_key)
         self.model = model
