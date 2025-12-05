@@ -65,17 +65,20 @@ defmodule SaasStarterWeb.Team.AcceptInviteLive do
        |> push_navigate(to: "/register")}
     else
       # Accept the invite
-      case Organizations.Invite
-           |> Ash.get(invite.id, authorize?: false)
-           |> case do
-             {:ok, invite} ->
-               invite
-               |> Ash.Changeset.for_update(:accept, %{user_id: current_user.id})
-               |> Ash.update(authorize?: false)
+      result =
+        Organizations.Invite
+        |> Ash.get(invite.id, authorize?: false)
+        |> case do
+          {:ok, invite} ->
+            invite
+            |> Ash.Changeset.for_update(:accept, %{user_id: current_user.id})
+            |> Ash.update(authorize?: false)
 
-             error ->
-               error
-           end do
+          error ->
+            error
+        end
+
+      case result do
         {:ok, _membership} ->
           organization = socket.assigns.organization
 

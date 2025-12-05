@@ -59,15 +59,18 @@ defmodule SaasStarterWeb.Team.IndexLive do
     current_user = socket.assigns.current_user
     current_org = socket.assigns.current_organization
 
-    case Organizations.Membership
-         |> Ash.get(member_id, actor: current_user, tenant: current_org.id)
-         |> case do
-           {:ok, membership} ->
-             Ash.destroy(membership, actor: current_user, tenant: current_org.id)
+    result =
+      Organizations.Membership
+      |> Ash.get(member_id, actor: current_user, tenant: current_org.id)
+      |> case do
+        {:ok, membership} ->
+          Ash.destroy(membership, actor: current_user, tenant: current_org.id)
 
-           error ->
-             error
-         end do
+        error ->
+          error
+      end
+
+    case result do
       {:ok, _} ->
         memberships = get_memberships(current_org.id)
 
@@ -85,15 +88,18 @@ defmodule SaasStarterWeb.Team.IndexLive do
     current_user = socket.assigns.current_user
     current_org = socket.assigns.current_organization
 
-    case Organizations.Invite
-         |> Ash.get(invite_id, actor: current_user, tenant: current_org.id)
-         |> case do
-           {:ok, invite} ->
-             Ash.destroy(invite, actor: current_user, tenant: current_org.id)
+    result =
+      Organizations.Invite
+      |> Ash.get(invite_id, actor: current_user, tenant: current_org.id)
+      |> case do
+        {:ok, invite} ->
+          Ash.destroy(invite, actor: current_user, tenant: current_org.id)
 
-           error ->
-             error
-         end do
+        error ->
+          error
+      end
+
+    case result do
       {:ok, _} ->
         invites = get_invites(current_org.id, current_user)
 
