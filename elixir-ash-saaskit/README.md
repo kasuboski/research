@@ -4,20 +4,22 @@ A modern SaaS starter kit built with Elixir, Phoenix Framework, and Ash Framewor
 
 ## Features
 
-- **Phoenix Framework 1.7**: Latest Phoenix with LiveView for real-time, interactive experiences
-- **Ash Framework 3.0**: Declarative resource modeling with powerful abstractions
-- **Authentication**: Built-in authentication with AshAuthentication
-- **Database**: PostgreSQL with AshPostgres
+- **Phoenix Framework 1.7.19**: Latest Phoenix with LiveView for real-time, interactive experiences
+- **Ash Framework 3.10**: Declarative resource modeling with powerful abstractions
+- **Authentication**: Built-in authentication with AshAuthentication 4.13
+- **Database**: PostgreSQL with AshPostgres 2.6
 - **UI**: Tailwind CSS with DaisyUI components
 - **Email**: Swoosh for sending emails with local preview in development
 - **Testing**: Comprehensive test setup with ExUnit
 
 ## Tech Stack
 
-- Elixir ~> 1.14
-- Phoenix ~> 1.7
-- Phoenix LiveView ~> 0.20
-- Ash ~> 3.0
+- Elixir ~> 1.17 (tested with 1.19.3)
+- Phoenix ~> 1.7.19
+- Phoenix LiveView ~> 1.1
+- Ash ~> 3.10
+- AshAuthentication ~> 4.13
+- AshPostgres ~> 2.6
 - PostgreSQL (via AshPostgres)
 - Tailwind CSS
 - DaisyUI
@@ -26,8 +28,8 @@ A modern SaaS starter kit built with Elixir, Phoenix Framework, and Ash Framewor
 
 Before you begin, ensure you have the following installed:
 
-- Elixir 1.14 or later
-- Erlang/OTP 25 or later
+- Elixir 1.17 or later (1.19.3 recommended)
+- Erlang/OTP 27 or later
 - PostgreSQL 14 or later
 - Node.js 18 or later (for asset compilation)
 
