@@ -5,8 +5,9 @@ defmodule SaasStarter.MixProject do
     [
       app: :saas_starter,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: [:phoenix_live_view] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps()
@@ -33,19 +34,19 @@ defmodule SaasStarter.MixProject do
   defp deps do
     [
       # Phoenix
-      {:phoenix, "~> 1.7.14"},
+      {:phoenix, "~> 1.7.19"},
       {:phoenix_ecto, "~> 4.6"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.5", only: :dev},
-      {:phoenix_live_view, "~> 0.20.17"},
-      {:phoenix_live_dashboard, "~> 0.8.4"},
+      {:phoenix_live_view, "~> 1.1"},
+      {:phoenix_live_dashboard, "~> 0.8"},
 
       # Ash Framework
-      {:ash, "~> 3.4"},
-      {:ash_phoenix, "~> 2.1"},
-      {:ash_authentication, "~> 4.0"},
-      {:ash_authentication_phoenix, "~> 2.1"},
-      {:ash_postgres, "~> 2.4"},
+      {:ash, "~> 3.10"},
+      {:ash_phoenix, "~> 2.3"},
+      {:ash_authentication, "~> 4.13"},
+      {:ash_authentication_phoenix, "~> 2.12"},
+      {:ash_postgres, "~> 2.6"},
 
       # Database
       {:ecto_sql, "~> 3.11"},
@@ -73,7 +74,8 @@ defmodule SaasStarter.MixProject do
       # Dev and Test
       {:floki, ">= 0.36.0", only: :test},
       {:phoenix_html_helpers, "~> 1.0"},
-      {:faker, "~> 0.18", only: [:dev, :test]}
+      {:faker, "~> 0.18", only: [:dev, :test]},
+      {:lazy_html, ">= 0.0.0", only: :test}
     ]
   end
 

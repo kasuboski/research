@@ -52,6 +52,9 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
+# Enable debug attributes for LiveView 1.1
+config :phoenix_live_view, debug_attributes: true
+
 # Configure swoosh for local development (mailbox preview)
 config :swoosh, :api_client, Swoosh.ApiClient.Finch
 
