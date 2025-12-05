@@ -1,122 +1,39 @@
-# CLAUDE.md - Implementation Guide for Ash Phoenix SaaS Starter Kit
+# CLAUDE.md - Ash Phoenix SaaS Starter Kit
 
 ## Project Overview
-This is a production-ready SaaS starter kit built with Elixir, Phoenix LiveView, and the Ash Framework. The architecture follows the principle: **"Model your domain, derive the rest."**
+Production-ready SaaS starter kit built with Elixir, Phoenix LiveView, and Ash Framework.
+**Architecture principle**: "Model your domain, derive the rest."
 
-## Core Architecture Principles
+## Core Architecture
 
-### 1. The Ash-First Approach
-- **Resources are the source of truth**: All schema, validations, and policies live in Ash Resources
-- **Actions are the interface**: ALL business logic goes through Ash Actions (never raw Ecto)
-- **Derived infrastructure**: APIs and admin interfaces are generated, not hand-coded
+### Ash-First Approach
+- **Resources are source of truth**: All schema, validations, and policies in Ash Resources
+- **Actions are interface**: ALL business logic through Ash Actions (never raw Ecto)
+- **Policies enforce security**: Authorization at resource level, not UI
 
-### 2. Domain Separation
+### Domain Structure
 ```
-Accounts Domain (Global)
-├── User (identity)
-└── Token (sessions)
-
-Organizations Domain (Tenanted)
-├── Organization (tenant)
-├── Membership (RBAC link)
-└── Invite (pending access)
+Accounts (Global)          Organizations (Tenanted)
+├── User                   ├── Organization
+└── Token                  ├── Membership (RBAC)
+                          └── Invite
 ```
 
-### 3. The "Thin" Phoenix Layer
-- LiveViews handle ONLY: HTTP, WebSocket state, UI rendering
+### Thin Phoenix Layer
+- LiveViews handle ONLY: HTTP, WebSocket, UI rendering
 - NO business logic in LiveViews
 - NO direct Ecto queries
-- ALL operations via Ash Actions
+- Delegate ALL operations to Ash Actions
 
-### 4. Multi-Tenancy Strategy
-- **Attribute-based tenancy**: `organization_id` on all tenant resources
-- **Automatic filtering**: Ash enforces tenant isolation
-- **URL-based resolution**: `/org-slug/dashboard`
+### Multi-Tenancy
+- **Strategy**: Attribute-based (`organization_id`)
+- **Isolation**: Automatic filtering via Ash policies
+- **Resolution**: URL-based (`/org-slug/dashboard`)
 
-## Implementation Order
+## Key Patterns
 
-### Phase 1: Foundation (Sequential)
-1. Initialize Phoenix project with required dependencies
-2. Configure database and basic Phoenix setup
-3. Set up Ash Framework base configuration
-
-### Phase 2: Accounts Domain (Sequential)
-1. Create Accounts API (Ash Domain)
-2. Define User resource with AshAuthentication
-3. Define Token resource
-4. Configure authentication strategies (password, magic link)
-
-### Phase 3: Organizations Domain (Sequential)
-1. Create Organizations API (Ash Domain)
-2. Define Organization resource
-3. Define Membership resource with RBAC
-4. Define Invite resource
-5. Set up multi-tenancy on all resources
-
-### Phase 4: Phoenix Web Layer (Parallel possible after auth)
-1. Configure Swoosh for email (dev mode with mailbox preview)
-2. Set up Tailwind CSS + DaisyUI
-3. Create CoreComponents library
-4. Build authentication LiveViews (login, register, forgot password)
-5. Build onboarding flow
-6. Build tenant dashboard with sidebar navigation
-7. Build team management and invite flows
-8. Build user settings pages
-
-### Phase 5: Testing & Verification
-1. Write domain tests (Resource policies and actions)
-2. Write integration tests (LiveView flows)
-3. Verify against PRD requirements
-
-## Key Files & Locations
-
-```
-elixir-ash-saaskit/
-├── mix.exs                          # Dependencies
-├── config/
-│   ├── config.exs                   # Base config
-│   ├── dev.exs                      # Dev environment (Swoosh local adapter)
-│   └── test.exs                     # Test environment
-├── lib/
-│   ├── saas_starter/                # Main application
-│   │   ├── accounts/                # Accounts Domain
-│   │   │   ├── accounts.ex          # Domain module
-│   │   │   ├── user.ex              # User resource
-│   │   │   └── token.ex             # Token resource
-│   │   ├── organizations/           # Organizations Domain
-│   │   │   ├── organizations.ex     # Domain module
-│   │   │   ├── organization.ex      # Organization resource
-│   │   │   ├── membership.ex        # Membership resource
-│   │   │   └── invite.ex            # Invite resource
-│   │   └── mailer.ex                # Swoosh configuration
-│   └── saas_starter_web/            # Phoenix Web
-│       ├── components/              # DaisyUI components
-│       │   └── core_components.ex
-│       ├── live/                    # LiveViews
-│       │   ├── auth/                # Auth flows
-│       │   ├── onboarding/          # Onboarding
-│       │   ├── dashboard/           # Main app
-│       │   └── settings/            # User settings
-│       ├── plugs/                   # Custom plugs
-│       │   └── load_tenant.ex       # Tenant resolution
-│       └── router.ex                # Routes
-├── priv/
-│   └── repo/
-│       └── migrations/              # Generated by Ash
-└── test/
-    ├── saas_starter/                # Domain tests
-    └── saas_starter_web/            # Integration tests
-```
-
-## Critical Implementation Details
-
-### AshAuthentication Setup
+### Authentication (AshAuthentication)
 ```elixir
-# In User resource
-use Ash.Resource,
-  domain: SaasStarter.Accounts,
-  extensions: [AshAuthentication]
-
 authentication do
   strategies do
     password :password do
@@ -135,39 +52,38 @@ authentication do
 end
 ```
 
-### Multi-Tenancy Pattern
+### Multi-Tenancy Configuration
 ```elixir
-# In Organization resource
+# Tenanted resource
 multitenancy do
   strategy :attribute
   attribute :organization_id
   global? false
 end
 
-# In actions
-Ash.bulk_create!([org_attrs], Organization,
+# Always pass tenant in operations
+Organizations.list_memberships!(
   actor: current_user,
-  tenant: org.id
+  tenant: current_organization.id
 )
 ```
 
-### Policy Examples
+### Policy Authorization
 ```elixir
 policies do
   policy action_type(:read) do
-    authorize_if actor_present()
     authorize_if relates_to_actor_via(:memberships)
   end
 
   policy action_type([:update, :destroy]) do
-    authorize_if MembershipPolicy.is_owner?()
+    authorize_if IsOwner
   end
 end
 ```
 
-### Tenant Resolution Plug
+### Tenant Resolution
 ```elixir
-# In LoadTenant plug
+# LoadTenant plug
 def call(conn, _opts) do
   org_slug = conn.path_params["org_slug"]
   org = Organizations.get_by_slug!(org_slug, actor: conn.assigns.current_user)
@@ -178,18 +94,16 @@ def call(conn, _opts) do
 end
 ```
 
-## Common Pitfalls to Avoid
+## Common Pitfalls
 
 ### ❌ DON'T: Direct Database Access
 ```elixir
-# WRONG
-Repo.insert!(%User{email: email})
+Repo.insert!(%User{email: email})  # WRONG
 ```
 
 ### ✅ DO: Use Ash Actions
 ```elixir
-# CORRECT
-Accounts.register_user(%{email: email, password: password})
+Accounts.register_user(%{email: email, password: password})  # CORRECT
 ```
 
 ### ❌ DON'T: Business Logic in LiveViews
@@ -197,11 +111,11 @@ Accounts.register_user(%{email: email, password: password})
 # WRONG
 def handle_event("create_org", params, socket) do
   org = Repo.insert!(%Organization{name: params["name"]})
-  membership = Repo.insert!(%Membership{user_id: user.id, org_id: org.id})
+  membership = Repo.insert!(%Membership{...})
 end
 ```
 
-### ✅ DO: Delegate to Ash Actions
+### ✅ DO: Delegate to Domain
 ```elixir
 # CORRECT
 def handle_event("create_org", params, socket) do
@@ -214,83 +128,54 @@ end
 
 ### ❌ DON'T: Forget Tenant Context
 ```elixir
-# WRONG - Will leak data across tenants
+# WRONG - Data leak!
 Organizations.list_memberships!(actor: current_user)
 ```
 
 ### ✅ DO: Always Pass Tenant
 ```elixir
 # CORRECT
-Organizations.list_memberships!(
-  actor: current_user,
-  tenant: current_organization.id
-)
+Organizations.list_memberships!(actor: current_user, tenant: org.id)
 ```
-
-## Testing Strategy
-
-### Domain Tests (Priority)
-Test Ash Resources in isolation:
-- Validations work correctly
-- Policies enforce authorization
-- Actions produce expected results
-- Multi-tenancy isolation works
-
-### Integration Tests
-Test LiveView flows (happy paths):
-- Registration -> Onboarding -> Dashboard
-- Login -> Context switching
-- Invite -> Accept -> New membership
 
 ## Development Workflow
 
-1. **Add a feature**: Start with the Resource (schema + policies)
-2. **Add actions**: Define the business logic as Ash Actions
+1. **Add feature**: Start with Resource (schema + policies)
+2. **Add actions**: Define business logic as Ash Actions
 3. **Add UI**: Create LiveView that calls the action
-4. **Add tests**: Test the Resource, then test the flow
+4. **Add tests**: Test Resource, then flow
 
-## Dependency Checklist
+## Testing Strategy
 
-Required in `mix.exs`:
-- `:phoenix` ~> 1.7
-- `:phoenix_live_view` ~> 0.20
-- `:ash` ~> 3.0
-- `:ash_phoenix` ~> 2.0
-- `:ash_authentication` ~> 4.0
-- `:ash_authentication_phoenix` ~> 2.0
-- `:ash_postgres` ~> 2.0
-- `:swoosh` ~> 1.14
-- `:tailwind` ~> 0.2
-- `:esbuild` ~> 0.8
+**Domain tests (priority)**: Ash Resources in isolation
+- Validations, policies, actions, multi-tenancy isolation
 
-## Environment Variables
+**Integration tests**: LiveView flows (happy paths)
+- Registration → Onboarding → Dashboard
+- Login → Context switching
+- Invite → Accept → Membership
 
-Required in `.env` / config:
+## Environment Setup
+
 ```bash
+# Required environment variables
 DATABASE_URL=postgres://localhost/saas_starter_dev
-SECRET_KEY_BASE=<generate with mix phx.gen.secret>
-TOKEN_SIGNING_SECRET=<generate with mix phx.gen.secret>
+SECRET_KEY_BASE=<mix phx.gen.secret>
+TOKEN_SIGNING_SECRET=<mix phx.gen.secret>
+
+# Setup commands
+mix deps.get
+mix ash.setup
+mix phx.server
+
+# Dev mailbox
+http://localhost:4000/dev/mailbox
 ```
 
-## Success Criteria
-
-The implementation is complete when:
-1. ✅ User can register and login
-2. ✅ New user is prompted to create organization
-3. ✅ User can access organization dashboard
-4. ✅ Owner can invite team members
-5. ✅ Invited user can accept and join organization
-6. ✅ User can switch between multiple organizations
-7. ✅ All policies prevent unauthorized access
-8. ✅ Multi-tenancy prevents data leaks
-9. ✅ Dev email workflow shows emails in `/dev/mailbox`
-10. ✅ All tests pass
-
-## Next Steps for AI Implementation
-
-1. Read this guide thoroughly
-2. Follow the implementation order
-3. Create atomic commits for each major component
-4. Test continuously
-5. Update TESTING.md with test results
-6. Verify against PRD before marking complete
+## Key Dependencies
+- Phoenix 1.7 + LiveView 0.20
+- Ash 3.0 + AshPhoenix 2.0
+- AshAuthentication 4.0
+- AshPostgres 2.0
+- Swoosh 1.14
+- Tailwind + DaisyUI
